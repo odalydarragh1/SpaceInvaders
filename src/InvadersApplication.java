@@ -2,79 +2,131 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.image.BufferStrategy;
 
 public class InvadersApplication extends JFrame implements Runnable, KeyListener {
-
-    private final int NUM_INVADERS = 30;
-    private final Sprite2D[] invaders = new Sprite2D[NUM_INVADERS];
-    private final Sprite2D playerShip;
-    // Sprite collision dimensions
-    private final int SPRITE_WIDTH = 54;
-    private final int SPRITE_HEIGHT = 54;
-    // MacOS border
-    private final int TOP_BORDER = 30;
+    private final int NUM_ALIENS = 30;
+    private final Alien[] aliens = new Alien[NUM_ALIENS];
+    private final Spaceship playerShip = new Spaceship();
+    private boolean movingLeft = false;
+    private final Canvas canvas; // Dedicated rendering component
+    static final int TOP_BORDER = 30;
 
     public InvadersApplication() {
-        // Set images
-        Image imageInvader = new ImageIcon("images/alien_ship_1.png").getImage();
-        Image imagePlayerShip = new ImageIcon("images/player_ship.png").getImage();
+        setTitle("Space Invaders");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-        // Initialise sprites
-        playerShip = new Sprite2D(imagePlayerShip, true, SPRITE_WIDTH, SPRITE_HEIGHT);
-        for (int i = 0; i < NUM_INVADERS; i++) {
-            invaders[i] = new Sprite2D(imageInvader, false, SPRITE_WIDTH, SPRITE_HEIGHT);
-        }
+        int CANVAS_WIDTH = 800; // new height
+        int CANVAS_HEIGHT = 600 + TOP_BORDER;
 
-        // Add thread
-        Thread t = new Thread(this);
-        t.start();
+        // Canvas needed for double buffering
+        canvas = new Canvas();
+        canvas.setPreferredSize(new Dimension(CANVAS_WIDTH, CANVAS_HEIGHT));
+        canvas.setBackground(Color.BLACK);
+        canvas.setFocusable(true);
+        canvas.addKeyListener(this);
 
-        // Add listener
-        addKeyListener(this);
+        getContentPane().add(canvas);
+        pack(); // for layout
+        centerFrame();
 
-        // Setup Jframe
-        this.setTitle("Space Invaders");
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(600, (600+TOP_BORDER));
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int x = (screenSize.width - getSize().width) / 2;
-        int y = (screenSize.height - getSize().height) / 2;
-        setBounds(x, y, getSize().width, getSize().height);
-        setBackground(Color.BLACK);
+        // Initialize aliens
+        initializeAliens();
         setVisible(true);
+
+        new Thread(this).start();
+    }
+
+    // centers
+    private void centerFrame() {
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        setLocation((screen.width - getWidth())/2, (screen.height - getHeight())/2);
+    }
+
+    // initialise aliens in rows and columns
+    private void initializeAliens() {
+        int columns = 12;
+        int rows = (NUM_ALIENS + columns - 1) / columns;
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < columns; col++) {
+                int index = row * columns + col;
+                if (index >= NUM_ALIENS) break;
+                aliens[index] = new Alien(row, col);
+            }
+        }
     }
 
     @Override
     public void run() {
+        // double buffering
+        canvas.createBufferStrategy(2);
+        BufferStrategy strategy = canvas.getBufferStrategy();
+
         while (true) {
-            try {
-                // 50 FPS
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
+            updateGameState();
+            renderFrame(strategy);
+            try { Thread.sleep(20); }
+            catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            int width = getSize().width -= SPRITE_WIDTH;
-            int height = getSize().height -= SPRITE_HEIGHT;
-            // Move Sprites
-            playerShip.playerMove(width);
-            for (int i = 0; i < NUM_INVADERS; i++) {
-                invaders[i].invaderMove(width, height);
-                repaint();
+        }
+    }
+
+    // method that updates the locations
+    private void updateGameState() {
+        int width = getSize().width;
+        boolean edgeReached = false;
+
+        playerShip.move(width);
+
+        // check if alien is at the edge of screen
+        for (Alien alien : aliens) {
+            if (alien.isAtEdge(movingLeft, width)) {
+                edgeReached = true;
+                break;
+            }
+        }
+
+        // change direction on move down if at screen edge
+        if (edgeReached) {
+            movingLeft = !movingLeft;
+            for (Alien alien : aliens) {
+                alien.moveDown();
+            }
+        }
+        else {
+            for (Alien alien : aliens) {
+                alien.moveHorizontal(movingLeft);
             }
         }
     }
 
-    @Override
-    public void paint(Graphics g) {
-        g.clearRect(0, 0, getSize().width, getSize().height);
+    private void renderFrame(BufferStrategy strategy) {
+        do {
+            do {
+                Graphics g = strategy.getDrawGraphics();
+                try {
+                    int width = canvas.getWidth();
+                    int height = canvas.getHeight();
 
-        // Paint in sprites
-        playerShip.paint(g);
-        for (int i = 0; i < NUM_INVADERS; i++) {
-            invaders[i].paint(g);
-        }
+                    // clear screen
+                    g.setColor(Color.BLACK);
+                    g.fillRect(0, 0, width, height);
+
+                    // render sprites
+                    playerShip.paint(g, playerShip.getImage());
+                    for (Alien alien : aliens) {
+                        if (alien != null) { // Add null check
+                            alien.paint(g, alien.getImage());
+                        }
+                    }
+                } finally {
+                    g.dispose(); // garbage collection
+                }
+            } while (strategy.contentsRestored());
+            strategy.show();
+        } while (strategy.contentsLost());
     }
-
 
     @Override
     public void keyTyped(KeyEvent e) {}
@@ -102,7 +154,5 @@ public class InvadersApplication extends JFrame implements Runnable, KeyListener
 
     public static void main(String[] args) {
         new InvadersApplication();
-
     }
-
 }

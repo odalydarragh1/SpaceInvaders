@@ -1,17 +1,21 @@
 import javax.swing.*;
 import java.awt.*;
-import java.util.Random;
 
 public class Spaceship extends Sprite2D {
+    private final Image imagePlayerShip = new ImageIcon("images/player_ship.png").getImage();
 
-    public Spaceship(Image image) {
-        super(image);
+    public Spaceship() {
+        super();
         setPosition(300, 560);
     }
 
-    public void move(int width, int height) {
+    public void move(int width) {
         if (xLocation + xVelocity >= 0 && xLocation + xVelocity < width) {
             xLocation += xVelocity;
         }
+    }
+
+    public Image getImage() {
+        return imagePlayerShip;
     }
 }

@@ -1,15 +1,13 @@
 import java.awt.*;
-import java.util.Random;
-
 
 public class Sprite2D {
     protected double xLocation;
     protected double yLocation;
     protected double xVelocity;
-    private final Image myImage;
+    protected final static int SPRITE_WIDTH = 54;
+    protected final static int SPRITE_HEIGHT = 54;
 
-    public Sprite2D(Image image) {
-        this.myImage = image;
+    public Sprite2D() {
     }
 
     public void setXVelocity(int xVelocity) {
@@ -21,7 +19,7 @@ public class Sprite2D {
         this.yLocation = yLocation;
     }
 
-    public void paint(Graphics g){
-        g.drawImage(myImage,(int) xLocation,(int) yLocation,null);
+    public void paint(Graphics g, Image image) {
+        g.drawImage(image,(int) xLocation,(int) yLocation,null);
     }
 }
