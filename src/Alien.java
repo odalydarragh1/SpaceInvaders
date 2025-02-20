@@ -2,7 +2,8 @@ import javax.swing.*;
 import java.awt.*;
 
 public class Alien extends Sprite2D {
-    private final Image imageInvader = new ImageIcon("images/alien_ship_1.png").getImage();
+    private final Image imageInvader1 = new ImageIcon("images/alien_ship_1.png").getImage();
+    private final Image imageInvader2 = new ImageIcon("images/alien_ship_2.png").getImage();
 
     // set x and y position initially
     public Alien(int row, int column) {
@@ -22,7 +23,7 @@ public class Alien extends Sprite2D {
     }
 
     public void moveDown() {
-        yLocation += SPRITE_HEIGHT / 2;
+        yLocation += (double) SPRITE_HEIGHT / 2;
     }
 
     // moves the aliens horizontally
@@ -35,7 +36,10 @@ public class Alien extends Sprite2D {
         }
     }
 
-    public Image getImage() {
-        return imageInvader;
+    public Image getImage(int framesDrawn) {
+        if ( framesDrawn%100<50 )
+            return imageInvader1;
+        else
+            return imageInvader2;
     }
 }
