@@ -1,56 +1,25 @@
 import java.awt.*;
-import java.util.Random;
-
 
 public class Sprite2D {
+    protected double xLocation;
+    protected double yLocation;
+    protected double xVelocity;
+    protected final static int SPRITE_WIDTH = 54;
+    protected final static int SPRITE_HEIGHT = 54;
 
-    private double xLocation, yLocation;
-    private double xVelocity;
-    private Image myImage;
-    private final int TOP_BORDER = 30;
-
-    public Sprite2D(Image i, boolean player, int SPRITE_WIDTH, int SPRITE_HEIGHT) {
-        this.myImage = i;
-        if (player) {
-            setPosition(300, 560);
-            return;
-        }
-
-        setPosition(Math.random()*(600-SPRITE_WIDTH), (Math.random()*(600-SPRITE_HEIGHT)+(TOP_BORDER)));
-    }
-
-    // Uses random to generate a 50/50 chance of moving left or right
-    public void invaderMove(int width, int height) {
-        Random random = new Random();
-        
-        int xMove = random.nextBoolean() ? 1 : -1; // 50/50 chance of positive or negative
-        int yMove = random.nextBoolean() ? 1 : -1;
-
-        if (xLocation + xMove >= 0 && xLocation + xMove < width) {
-            xLocation += xMove;
-        }
-        if (yLocation + yMove >= TOP_BORDER && yLocation + yMove < height) {
-            yLocation += yMove;
-        }
-    }
-
-
-    public void playerMove(int width) {
-        if (xLocation + xVelocity >= 0 && xLocation + xVelocity < width) {
-            xLocation += xVelocity;
-        }
+    public Sprite2D() {
     }
 
     public void setXVelocity(int xVelocity) {
         this.xVelocity = xVelocity;
     }
 
-    public void paint(Graphics g){
-        g.drawImage(myImage,(int) xLocation,(int) yLocation,null);
-    }
-
     public void setPosition(double xLocation, double yLocation) {
         this.xLocation = xLocation;
         this.yLocation = yLocation;
+    }
+
+    public void paint(Graphics g, Image image) {
+        g.drawImage(image,(int) xLocation,(int) yLocation,null);
     }
 }
