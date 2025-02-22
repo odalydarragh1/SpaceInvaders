@@ -2,65 +2,49 @@ import javax.swing.*;
 import java.awt.*;
 
 public class Alien extends Sprite2D {
-    private final Image imageInvader1 = new ImageIcon("images/alien_ship_1.png").getImage();
-    private final Image imageInvader2 = new ImageIcon("images/alien_ship_2.png").getImage();
-    private int ALIEN_SPEED = 1;
+    private final Image image1 = new ImageIcon("images/alien_ship_1.png").getImage();
+    private final Image image2 = new ImageIcon("images/alien_ship_2.png").getImage();
+    private int speed = 1;
 
-    public Alien() {
-    }
-
-    // check if it has hit an edge
+    // Returns true or false based on whether the alien is at the edge or not based on its direction
     public boolean isAtEdge(boolean movingLeft, int screenWidth) {
-        if (movingLeft) {
-            return (xLocation <= 0);
-        } else {
-            return (xLocation + SPRITE_WIDTH >= screenWidth);
-        }
+        return movingLeft ? (x <= 0) : (x + getWidth() >= screenWidth);
     }
 
+    // returns whether the alien is at the bottom
     public boolean isAtBottom(int screenHeight) {
-        return (yLocation >= screenHeight);
+        return y >= screenHeight;
     }
 
+    // Simply move down
     public void moveDown() {
-        yLocation += ALIEN_SPEED;
+        y += speed;
     }
 
-    // moves the aliens horizontally
+    // Move horizontal based on direction
     public void moveHorizontal(boolean movingLeft) {
-
-        if (movingLeft) {
-            xLocation -= ALIEN_SPEED;
-        } else {
-            xLocation += ALIEN_SPEED;
-        }
+        x += movingLeft ? -speed : speed;
     }
 
-    public Image getImage(int framesDrawn) {
-        if ( framesDrawn%100<50 )
-            return imageInvader1;
-        else
-            return imageInvader2;
+    // Return the correct image based on the modules of the framecount
+    public Image getImage(int frameCount) {
+        return (frameCount % 100 < 50) ? image1 : image2;
     }
 
-    public void reset(int index, int columns, int horizontalSpacing, int verticalSpacing) {
-        int row = index / columns; // Calculate row from index
-        int col = index % columns; // Calculate column from index
-
-        // Calculate position with spacing
-        int x = col * (SPRITE_WIDTH + horizontalSpacing);
-        int y = InvadersApplication.TOP_BORDER + row * (SPRITE_HEIGHT + verticalSpacing);
-        destroyed = false;
-        setPosition(x, y);
-        }
-
-    public void increaseSpeed(int ALIEN_SPEED) {
-        this.ALIEN_SPEED += ALIEN_SPEED;
+    // Simply increase speed
+    public void increaseSpeed(int increment) {
+        speed += increment;
     }
 
-    public void setSpeed(int ALIEN_SPEED) {
-        this.ALIEN_SPEED = ALIEN_SPEED;
-    }
+    // Simply set speed
+    public void setSpeed(int newSpeed) {
+        speed = newSpeed;
     }
 
+    // Returns the width and height of this sprite
 
+    @Override
+    public int getWidth() { return SPRITE_WIDTH; }
+    @Override
+    public int getHeight() { return SPRITE_HEIGHT; }
+}

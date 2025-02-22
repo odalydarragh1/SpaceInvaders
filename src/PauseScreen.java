@@ -1,20 +1,27 @@
 import java.awt.*;
 
 public class PauseScreen {
-    public void paint(Graphics g, int score) {
-        g.setColor(Color.white);
-        g.setFont(new Font("TimesRoman", Font.PLAIN, 50));
-        if (InvadersApplication.paused){
-            g.drawString("Paused", 320, 250);
-            g.drawString("Press Escape to continue", 180,  300);
-            g.drawString("Score: ", 250, 350);
-            g.drawString((Integer.toString(score)), 300, 350);
-        }
-        if (InvadersApplication.gameOver) {
-            g.drawString("Game Over", 320, 250);
-            g.drawString("Press Escape to restart", 180, 300);
-            g.drawString("Score: ", 250, 350);
-            g.drawString((Integer.toString(score)), 300, 350);
-        }
+    private static final Font TITLE_FONT = new Font("Arial", Font.BOLD, 50);
+    private static final Font TEXT_FONT = new Font("Arial", Font.PLAIN, 30);
+
+    public void paint(Graphics g, int score, boolean gameOver) {
+        g.setColor(Color.WHITE);
+        g.setFont(TITLE_FONT);
+
+        String title = gameOver ? "Game Over" : "Paused";
+        int titleWidth = g.getFontMetrics().stringWidth(title); // get the width in pixels of the title
+        int x = (800 - titleWidth) / 2; // find midpoint
+
+        // Draw title
+        g.drawString(title, x, 250);
+
+        // Draw instructions
+        g.setFont(TEXT_FONT);
+        String instruction = gameOver ? "Press ESC to restart" : "Press ESC to continue";
+        g.drawString(instruction, 250, 300);
+
+        // Draw score
+        String scoring = gameOver ? "Final Score: " : "Current Score: ";
+        g.drawString(scoring + score, 300, 350);
     }
 }
