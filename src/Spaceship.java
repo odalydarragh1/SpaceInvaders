@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class Spaceship extends Sprite2D {
     private final Image imagePlayerShip = new ImageIcon("images/player_ship.png").getImage();
-    protected ArrayList<Bullet> bullets = new ArrayList<>();
+    protected final ArrayList<Bullet> bullets = new ArrayList<>();
 
     public Spaceship() {
         super();
@@ -23,5 +23,10 @@ public class Spaceship extends Sprite2D {
 
     public void shoot(){
         bullets.add(new Bullet(this.xLocation));
+    }
+
+    public void reset(){
+        setPosition(300, 560);
+        bullets.clear();
     }
 }
