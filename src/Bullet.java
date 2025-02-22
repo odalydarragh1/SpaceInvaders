@@ -1,24 +1,30 @@
 import javax.swing.*;
 import java.awt.*;
 
-public class Bullet extends Sprite2D{
-    private final Image imageBullet = new ImageIcon("images/bullet.png").getImage();
+public class Bullet extends Sprite2D {
+    private final Image image = new ImageIcon("images/bullet.png").getImage();
+    private static final int SPEED = 10;
 
-
-    public Bullet(double xLocation) {
-        setPosition(xLocation+((double) Sprite2D.SPRITE_WIDTH /2), 560);
-        this.yVelocity = 10;
+    // Sets location of bullet based on player ship
+    public Bullet(double startX) {
+        x = startX;
+        y = 560;
     }
 
-    public void move(){
-        if (yLocation <= 0) {
+    // Move upwards based on speed and destroy itself once it hits the ceiling
+    public void move() {
+        y -= SPEED;
+        if (y + getHeight() <= 0) {
             destroyed = true;
-            return;
         }
-        this.yLocation -= this.yVelocity;
     }
 
-    public Image getImage() {
-        return imageBullet;
-    }
+    // Return image
+    public Image getImage() { return image; }
+
+    // Returns the dimensions of this sprite
+    @Override
+    public int getWidth() { return BULLET_WIDTH; }
+    @Override
+    public int getHeight() { return BULLET_HEIGHT; }
 }

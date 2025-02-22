@@ -1,36 +1,37 @@
 import java.awt.*;
 
-public class Sprite2D {
-    public boolean destroyed;
-    protected double xLocation;
-    protected double yLocation;
-    protected double xVelocity;
-    protected double yVelocity;
-    protected static int SPRITE_WIDTH = 54;
-    protected static int SPRITE_HEIGHT = 54;
-    protected static int BULLET_HEIGHT = 26;
-    protected static int BULLET_WIDTH = 12;
+public abstract class Sprite2D {
+    protected double x;
+    protected double y;
+    protected boolean destroyed;
+    public static final int SPRITE_WIDTH = 54;
+    public static final int SPRITE_HEIGHT = 54;
+    public static final int BULLET_WIDTH = 12;
+    public static final int BULLET_HEIGHT = 26;
 
-    public Sprite2D() {
+    // Abstract fields as all sprites are different
+    public abstract int getWidth();
+    public abstract int getHeight();
+
+    // Sets 2d position of sprite
+    public void setPosition(double x, double y) {
+        this.x = x;
+        this.y = y;
     }
 
-    public void setXVelocity(int xVelocity) {
-        this.xVelocity = xVelocity;
-    }
-
-    public void setPosition(double xLocation, double yLocation) {
-        this.xLocation = xLocation;
-        this.yLocation = yLocation;
-    }
-
+    // As long as its not destroyed, it will get rendered
     public void paint(Graphics g, Image image) {
-        if (destroyed) {
-            return;
+        if (!destroyed) {
+            g.drawImage(image, (int) x, (int) y, null);
         }
-        g.drawImage(image,(int) xLocation,(int) yLocation,null);
     }
 
+    // Destroy itself
     public void destroy() {
         destroyed = true;
     }
+
+    // Positioning getter methods
+    public double getX() { return x; }
+    public double getY() { return y; }
 }

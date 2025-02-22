@@ -7,288 +7,295 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InvadersApplication extends JFrame implements Runnable, KeyListener {
-    private final int NUM_ALIENS = 30;
+
+    // Defining my constants
+    private static final int NUM_ALIENS = 30;
+    private static final int ALIEN_COLUMNS = 10;
+    private static final int HORIZONTAL_SPACING = 15;
+    private static final int VERTICAL_SPACING = 30;
+    private static final int TOP_BORDER = 50;
+    private static final int PLAYER_START_Y = 560;
+
+    // Creating necessary instances
     private final Alien[] aliens = new Alien[NUM_ALIENS];
-    private final Spaceship playerShip = new Spaceship();
+    private final Spaceship player = new Spaceship();
+    private final Canvas canvas = new Canvas();
+    private final PauseScreen pauseScreen = new PauseScreen();
+
+    // Gamestate trackers
     private boolean movingLeft = false;
-    private final Canvas canvas; // Dedicated rendering component
-    static final int TOP_BORDER = 30;
-    private int framesDrawn = 0;
-    static boolean paused = false;
-    static boolean gameOver = false;
-    PauseScreen pauseScreen = new PauseScreen();
-    private final int columns = 12;
-    private final int horizontalSpacing = 5; // Adjust spacing between columns
-    private final int verticalSpacing = 10;   // Adjust spacing between rows
-    private final int height = 600;
+    private boolean paused = false;
+    private boolean gameOver = false;
     private int score = 0;
-
-
+    private int frameCount = 0;
 
     public InvadersApplication() {
-        setTitle("Space Invaders");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        configureWindow();
+        initialiseAliens();
+        startGameLoop();
+    }
 
-        int CANVAS_WIDTH = 800; // new height
-        int CANVAS_HEIGHT = height + TOP_BORDER;
-
-        // Canvas needed for double buffering
-        canvas = new Canvas();
-        canvas.setPreferredSize(new Dimension(CANVAS_WIDTH, CANVAS_HEIGHT));
-        canvas.setBackground(Color.BLACK);
-        canvas.setFocusable(true);
-        canvas.addKeyListener(this);
-
-        getContentPane().add(canvas);
-        pack(); // for layout
-        centerFrame();
-
-        // Initialize aliens
-        initializeAliens();
-        setVisible(true);
-
+    // Start thread
+    private void startGameLoop() {
         new Thread(this).start();
     }
 
-    // centers
-    private void centerFrame() {
+    // Setup j-frame canvas
+    private void configureWindow() {
+        setTitle("Space Invaders");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        canvas.setPreferredSize(new Dimension(800, 650));
+        canvas.setBackground(Color.BLACK);
+        canvas.addKeyListener(this);
+        getContentPane().add(canvas);
+        pack();
+        centerWindow();
+        setVisible(true);
+    }
+    
+    // Simply center the window on the screen
+    private void centerWindow() {
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
         setLocation((screen.width - getWidth())/2, (screen.height - getHeight())/2);
     }
-
-    // initialise aliens in rows and columns
-    private void initializeAliens() {
+    
+    // Initialise the aliens in an array
+    private void initialiseAliens() {
         for (int i = 0; i < NUM_ALIENS; i++) {
             aliens[i] = new Alien();
-            aliens[i].reset(i, columns, horizontalSpacing, verticalSpacing);
+            resetAlienPosition(i);
         }
     }
 
+    // Set alien position into rows and columns by index and set all aliens to alive(destroyed == false)
+    private void resetAlienPosition(int index) {
+        int row = index / ALIEN_COLUMNS;
+        int col = index % ALIEN_COLUMNS;
+        double x = col * (aliens[0].getWidth() + HORIZONTAL_SPACING);
+        double y = TOP_BORDER + row * (aliens[0].getHeight() + VERTICAL_SPACING);
+        aliens[index].setPosition(x, y);
+        aliens[index].destroyed = false;
+    }
+
+    // Run my thread
     @Override
     public void run() {
-        // double buffering
-        canvas.createBufferStrategy(2);
+        canvas.createBufferStrategy(2); // Double buffering
         BufferStrategy strategy = canvas.getBufferStrategy();
 
         while (true) {
-            updateGameState();
+            if (!paused && !gameOver) {
+                updateGameState();
+            }
             renderFrame(strategy);
-            try { Thread.sleep(20); }
-            catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            if(checkWin()){
-                resetGame(true);
-            }
-            checkGameOver();
-            if (gameOver) {
-                resetGame(false);
-            }
-            while (paused || gameOver) {
-                displayPauseScreen(strategy);
-            }
+            sleep(20);
         }
     }
 
-    // method that updates the locations
+    // A method that can be called to update all elements of the game
     private void updateGameState() {
-        int width = getSize().width;
-        boolean edgeReached = false;
-        List <Bullet> bulletsToRemove = new ArrayList<>();
+        updatePlayer();
+        updateBullets();
+        updateAliens();
+        checkCollisions();
+        checkGameOver();
+        checkWinCondition();
+    }
 
-        playerShip.move(width);
-        if (playerShip.bullets != null && !playerShip.bullets.isEmpty()) {
-            for (Bullet bullet : playerShip.bullets) {
-                bullet.move();
+    // Update the player ship
+    private void updatePlayer() {
+        player.move(canvas.getWidth());
+    }
+
+    // Update the bullets/arraylist of bullets
+    private void updateBullets() {
+        List<Bullet> bulletsToRemove = new ArrayList<>();
+        for (Bullet bullet : player.getBullets()) {
+            bullet.move();
+            if (bullet.destroyed) {
+                bulletsToRemove.add(bullet);
             }
         }
-        // check if alien is at the edge of screen
-        for (Alien alien : aliens) {
-            if(alien.destroyed){continue;}
-            if(alien.isAtBottom(height)){
-                resetGame(false);
-            }
-            if (alien.isAtEdge(movingLeft, width)) {
-                edgeReached = true;
-                break;
-            }
-        }
+        player.getBullets().removeAll(bulletsToRemove);
+    }
 
-        // change direction on move down if at screen edge
+    // Update the Aliens
+    private void updateAliens() {
+        boolean edgeReached = checkAliensEdges();
+        handleAlienMovement(edgeReached);
+    }
+
+    // Handles the alien movement of hitting the edge and changing direction while getting closer to the player ship
+    private void handleAlienMovement(boolean edgeReached) {
         if (edgeReached) {
             movingLeft = !movingLeft;
             for (Alien alien : aliens) {
-                if(alien.destroyed){continue;}
-                alien.moveDown();
+                if (!alien.destroyed) alien.moveDown();
             }
-        }
-        else {
+        } else {
             for (Alien alien : aliens) {
-                if(alien.destroyed){continue;}
-                alien.moveHorizontal(movingLeft);
+                if (!alien.destroyed) alien.moveHorizontal(movingLeft);
             }
         }
-        if (playerShip.bullets != null && !playerShip.bullets.isEmpty()) {
-            List<Bullet> bulletsCopy;
-            synchronized (playerShip.bullets) {
-                bulletsCopy = new ArrayList<>(playerShip.bullets);
-            }
+    }
 
-            for (Bullet bullet : bulletsCopy) {
-                if (bullet != null) {
-                    if (bullet.destroyed) {
-                        continue;
-                    }
-                    for (Alien alien : aliens) {
-                        if (alien.destroyed) {
-                            continue;
-                        }
-                        if (checkCollision(alien, bullet)) {
-                            alien.destroy();
-                            score++;
-                            bullet.destroy();
-                            bulletsToRemove.add(bullet);
-                        }
-                    }
+    // Returns whether the aliens have reached an edge or not
+    private boolean checkAliensEdges() {
+        for (Alien alien : aliens) {
+            if (!alien.destroyed && alien.isAtEdge(movingLeft, canvas.getWidth())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Checks for collisions between the bullets
+    private void checkCollisions() {
+        List<Bullet> bulletsToRemove = new ArrayList<>();
+
+        for (Bullet bullet : player.getBullets()) {
+            if (bullet.destroyed) continue;
+
+            for (Alien alien : aliens) {
+                if (alien.destroyed) continue;
+
+                if (checkCollision(alien, bullet)) {
+                    alien.destroy();
+                    bullet.destroy();
+                    score += 10;
+                    bulletsToRemove.add(bullet);
                 }
             }
         }
-        assert playerShip.bullets != null;
-        playerShip.bullets.removeAll(bulletsToRemove);
+        player.getBullets().removeAll(bulletsToRemove);
     }
 
-    private void displayPauseScreen(BufferStrategy strategy) {
-        do {
-            do {
-                Graphics g = strategy.getDrawGraphics();
-                try {
-                    int width = canvas.getWidth();
-                    int height = canvas.getHeight();
-
-                    // clear screen
-                    g.setColor(Color.BLACK);
-                    g.fillRect(0, 0, width, height);
-
-                    pauseScreen.paint(g, score);
-
-                } finally {
-                    g.dispose(); // garbage collection
-                }
-            } while (strategy.contentsRestored());
-            strategy.show();
-        } while (strategy.contentsLost());
+    // Checks collisions between two sprites
+    private boolean checkCollision(Sprite2D a, Sprite2D b) {
+        return a.getX() < b.getX() + b.getWidth() &&
+                a.getX() + a.getWidth() > b.getX() &&
+                a.getY() < b.getY() + b.getHeight() &&
+                a.getY() + a.getHeight() > b.getY();
     }
 
+    // Checks if the aliens have collided with the player
     private void checkGameOver() {
         for (Alien alien : aliens) {
-            if (checkCollision(playerShip, alien)) {
+            if (!alien.destroyed && checkCollision(player, alien)) {
                 gameOver = true;
+                return;
+            }
+            if (alien.isAtBottom(canvas.getHeight())) {
+                gameOver = true;
+                return;
             }
         }
     }
 
-    private boolean checkWin() {
-        boolean win = true;
+    // Checks the win condition of if all aliens are destroyed
+    private void checkWinCondition() {
+        boolean allDestroyed = true;
         for (Alien alien : aliens) {
             if (!alien.destroyed) {
-                win = false;
+                allDestroyed = false;
                 break;
             }
         }
-        return win;
+        if (allDestroyed) {
+            resetGame(true);
+            score += 1000;
+        }
     }
 
-    private void resetGame(boolean win) {
+    private void resetGame(boolean increaseSpeed) {
         for (int i = 0; i < NUM_ALIENS; i++) {
-            aliens[i].reset(i, columns, horizontalSpacing, verticalSpacing);
-            if (win){
-                aliens[i].increaseSpeed(5);
-            }
-            else{
+            resetAlienPosition(i);
+            if (increaseSpeed) {
+                aliens[i].increaseSpeed(2);
+            } else {
                 aliens[i].setSpeed(1);
             }
         }
-        playerShip.reset();
+        player.setPosition(300, PLAYER_START_Y);
+        player.clearBullets();
+        gameOver = false;
     }
 
     private void renderFrame(BufferStrategy strategy) {
         do {
-            do {
-                Graphics g = strategy.getDrawGraphics();
-                try {
-                    int width = canvas.getWidth();
-                    int height = canvas.getHeight();
+            Graphics g = strategy.getDrawGraphics();
+            try {
+                g.setColor(Color.BLACK);
+                g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-                    // clear screen
-                    g.setColor(Color.BLACK);
-                    g.fillRect(0, 0, width, height);
+                if (paused || gameOver) {
+                    pauseScreen.paint(g, score, gameOver);
+                } else {
+                    player.paint(g, player.getImage());
 
-                    // render sprites
-                    playerShip.paint(g, playerShip.getImage());
                     for (Alien alien : aliens) {
-                        if (alien != null) { // Add null check
-                            alien.paint(g, alien.getImage(framesDrawn));
+                        if (!alien.destroyed) {
+                            alien.paint(g, alien.getImage(frameCount));
                         }
                     }
 
-                    List<Bullet> bulletsCopy;
-                    synchronized (playerShip.bullets) {
-                        bulletsCopy = new ArrayList<>(playerShip.bullets);
-                    }
-
-                    for (Bullet bullet : bulletsCopy) {
-                        if (bullet != null) {
+                    for (Bullet bullet : player.getBullets()) {
+                        if (!bullet.destroyed) {
                             bullet.paint(g, bullet.getImage());
                         }
                     }
 
-                    framesDrawn++;
-                } finally {
-                    g.dispose(); // garbage collection
+                    g.setColor(Color.WHITE);
+                    g.drawString("Score: " + score, 20, 30);
+
+                    frameCount++;
                 }
-            } while (strategy.contentsRestored());
-            strategy.show();
-        } while (strategy.contentsLost());
+            } finally {
+                g.dispose(); // garbage collection
+            }
+        } while (strategy.contentsRestored());
+
+        strategy.show();
     }
 
-    public boolean checkCollision(Sprite2D sprite1, Sprite2D sprite2) {
-        return ((sprite1.xLocation < sprite2.xLocation && sprite1.xLocation + Sprite2D.SPRITE_WIDTH > sprite2.xLocation) || (sprite2.xLocation < sprite1.xLocation && sprite2.xLocation + Sprite2D.BULLET_WIDTH > sprite1.xLocation)) && ((sprite1.yLocation < sprite2.yLocation && sprite1.yLocation + Sprite2D.SPRITE_HEIGHT > sprite2.yLocation) || (sprite2.yLocation < sprite1.yLocation && sprite2.yLocation + Sprite2D.BULLET_HEIGHT > sprite1.yLocation));
+    // Controls the framerate
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
+    // Main keyboard controls
     @Override
     public void keyTyped(KeyEvent e) {}
 
-    // Set player sprite velocity
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-            playerShip.setXVelocity(-3);
-        }
-        if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            playerShip.setXVelocity(3);
-        }
-        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            playerShip.shoot();
-        }
-        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            if (!gameOver) {
-                paused = !paused;
-            }
-            if (gameOver) {
-                gameOver = false;
-            }
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_LEFT:
+                player.setXVelocity(-5);
+                break;
+            case KeyEvent.VK_RIGHT:
+                player.setXVelocity(5);
+                break;
+            case KeyEvent.VK_SPACE:
+                if (!gameOver && !paused) player.shoot();
+                break;
+            case KeyEvent.VK_ESCAPE:
+                if (gameOver) resetGame(false);
+                else paused = !paused;
+                break;
         }
     }
 
-    // Stop moving player sprite
     @Override
     public void keyReleased(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-            playerShip.setXVelocity(0);
+        if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_RIGHT) {
+            player.setXVelocity(0);
         }
-        if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-            playerShip.setXVelocity(0);
-        }    }
+    }
 
     public static void main(String[] args) {
         new InvadersApplication();
