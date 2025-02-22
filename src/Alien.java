@@ -4,13 +4,9 @@ import java.awt.*;
 public class Alien extends Sprite2D {
     private final Image imageInvader1 = new ImageIcon("images/alien_ship_1.png").getImage();
     private final Image imageInvader2 = new ImageIcon("images/alien_ship_2.png").getImage();
+    private int ALIEN_SPEED = 1;
 
-    // set x and y position initially
-    public Alien(int row, int column) {
-        super();
-        int x = column * (SPRITE_WIDTH);
-        int y = InvadersApplication.TOP_BORDER + row * (SPRITE_HEIGHT+20);
-        setPosition(x, y);
+    public Alien() {
     }
 
     // check if it has hit an edge
@@ -22,13 +18,17 @@ public class Alien extends Sprite2D {
         }
     }
 
+    public boolean isAtBottom(int screenHeight) {
+        return (yLocation >= screenHeight);
+    }
+
     public void moveDown() {
-        yLocation += (double) SPRITE_HEIGHT / 2;
+        yLocation += ALIEN_SPEED;
     }
 
     // moves the aliens horizontally
     public void moveHorizontal(boolean movingLeft) {
-        int ALIEN_SPEED = 1;
+
         if (movingLeft) {
             xLocation -= ALIEN_SPEED;
         } else {
@@ -42,4 +42,25 @@ public class Alien extends Sprite2D {
         else
             return imageInvader2;
     }
-}
+
+    public void reset(int index, int columns, int horizontalSpacing, int verticalSpacing) {
+        int row = index / columns; // Calculate row from index
+        int col = index % columns; // Calculate column from index
+
+        // Calculate position with spacing
+        int x = col * (SPRITE_WIDTH + horizontalSpacing);
+        int y = InvadersApplication.TOP_BORDER + row * (SPRITE_HEIGHT + verticalSpacing);
+        destroyed = false;
+        setPosition(x, y);
+        }
+
+    public void increaseSpeed(int ALIEN_SPEED) {
+        this.ALIEN_SPEED += ALIEN_SPEED;
+    }
+
+    public void setSpeed(int ALIEN_SPEED) {
+        this.ALIEN_SPEED = ALIEN_SPEED;
+    }
+    }
+
+
